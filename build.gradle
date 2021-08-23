@@ -5,6 +5,9 @@ plugins {
 group 'me.tecc.lahc'
 version '0.1.0-alpha'
 
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
 repositories {
     mavenCentral()
 }

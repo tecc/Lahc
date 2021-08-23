@@ -1,5 +1,7 @@
 package me.tecc.lahc.util;
 
+import org.jetbrains.annotations.Contract;
+
 import java.nio.charset.Charset;
 import java.nio.charset.IllegalCharsetNameException;
 import java.nio.charset.UnsupportedCharsetException;
@@ -9,11 +11,46 @@ public class MimeType implements HeaderValue {
     private String type;
     private String charset;
 
+    public MimeType(String type) {
+        this(type, null);
+    }
+
     public MimeType(String type, String charset) {
         if (type == null) throw new IllegalArgumentException("Type may not be null!");
 
         this.type = type;
-        this.charset = charset;
+
+        if (charset != null && !Util.isBlank(charset)) this.charset = charset;
+        else this.charset = null;
+    }
+
+    @Contract("null -> null; _ -> _")
+    public static MimeType parse(String str) {
+        if (str == null) return null;
+        StringBuilder type = new StringBuilder();
+        StringBuilder charset = null;
+        StringBuilder propName = null; // just for safety
+        boolean semi = false;
+        boolean eq = false;
+        for (char c : str.toCharArray()) {
+            if (eq) charset.append(c);
+            else if (semi) {
+                if (c == '=') {
+                    if (!propName.toString().equals("charset")) throw new IllegalArgumentException("Invalid property name");
+                    charset = new StringBuilder();
+                    eq = true;
+                } else propName.append(c);
+            }
+            else {
+                if (c == ';') {
+                    semi = true;
+                    propName = new StringBuilder();
+                } else {
+                    type.append(c);
+                }
+            }
+        }
+        return new MimeType(type.toString(), charset == null ? null : charset.toString());
     }
 
     public String getType() {
@@ -41,14 +78,20 @@ public class MimeType implements HeaderValue {
 
     @Override
     public String toString() {
-        return getType() + ";charset=" + getCharset();
+        String type = getType();
+        String charset = getCharset();
+        if (charset == null || Util.isBlank(charset)) return getType();
+        else return getType() + ";charset=" + charset;
     }
 
     @Override
-    public List<String> getHeaderValue() {
-        return List.of(toString());
+    public String getHeaderValue() {
+        return toString();
     }
 
     /* Put predefined mime types here */
-
+    public static final MimeType ANY = new MimeType("*/*");
+    public static final class Application {
+        public static final MimeType JSON = new MimeType("application/json");
+    }
 }

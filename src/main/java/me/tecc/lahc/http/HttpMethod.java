@@ -1,4 +1,4 @@
-package me.tecc.lahc;
+package me.tecc.lahc.http;
 
 public enum HttpMethod {
     GET,
