@@ -1,0 +1,3 @@
+<component name="DependencyValidationManager">
+  <scope name="Lahc source files" pattern="src:me.tecc.lahc..*" />
+</component>

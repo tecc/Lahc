@@ -4,9 +4,8 @@ build/
 
 # IDEs
 # - IntelliJ-based
-.idea/
-!.idea/scopes
-!.idea/scopes/**
+# Default ignored files
+.idea/*
 !.idea/copyright
-!.idea/copyright/*
+!.idea/scopes
 *.iml
