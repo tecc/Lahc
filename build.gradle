@@ -1,5 +1,11 @@
+/*
+ * Copyright (c) 2021 tecc
+ * Lahc is licensed under the MIT licence.
+ */
+
 plugins {
-    id 'java'
+    id 'java-library'
+    id 'maven-publish'
 }
 
 group 'me.tecc.lahc'

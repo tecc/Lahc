@@ -5,4 +5,8 @@ build/
 # IDEs
 # - IntelliJ-based
 .idea/
+!.idea/scopes
+!.idea/scopes/**
+!.idea/copyright
+!.idea/copyright/*
 *.iml

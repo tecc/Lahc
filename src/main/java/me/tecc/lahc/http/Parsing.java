@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2021 tecc
+ * Lahc is licensed under the MIT licence.
+ */
+
 package me.tecc.lahc.http;
 
 import me.tecc.lahc.Status;

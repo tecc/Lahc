@@ -1,2 +1,7 @@
+/*
+ * Copyright (c) 2021 tecc
+ * Lahc is licensed under the MIT licence.
+ */
+
 rootProject.name = 'lahc'
 
