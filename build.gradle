@@ -44,3 +44,24 @@ if (hasProperty("release")) {
     compileJava.dependsOn expandSources
     compileJava.source = expandSources.destinationDir
 }
+
+publishing {
+    repositories {
+        maven {
+            name 'snapshots'
+            url 'https://m2.tecc.me/snapshots'
+            credentials {
+                username System.getenv("LACH_PUBLISH_USERNAME")
+                password System.getenv("LACH_PUBLISH_PASSWORD")
+            }
+        }
+    }
+    publications {
+        if (project.hasProperty("release")) {
+            println 'Enabling release publication'
+            release(MavenPublication) {
+                from components.java
+            }
+        }
+    }
+}
