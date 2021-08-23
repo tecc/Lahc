@@ -1,0 +1,37 @@
+plugins {
+    id 'java'
+}
+
+group 'me.tecc.lahc'
+version '0.1.0-alpha'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compileOnly 'org.jetbrains:annotations:22.0.0'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.2'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+task expandSources(type: Copy) {
+    from 'src/main/java'
+    into 'build/adjustedSrc'
+
+    eachFile { FileCopyDetails fcd ->
+        if (fcd.relativePath.lastName == "Lahc.java") {
+            expand(project: project)
+        }
+    }
+    outputs.upToDateWhen { false }
+}
+if (hasProperty("release")) {
+    compileJava.dependsOn expandSources
+    compileJava.source = expandSources.destinationDir
+}
