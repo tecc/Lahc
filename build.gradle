@@ -21,6 +21,8 @@ repositories {
 dependencies {
     compileOnly 'org.jetbrains:annotations:22.0.0'
 
+    testImplementation 'org.apache.httpcomponents.client5:httpclient5:5.1'
+    testImplementation 'org.asynchttpclient:async-http-client:2.12.3'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.2'
 }
@@ -43,6 +45,13 @@ task expandSources(type: Copy) {
 if (hasProperty("release")) {
     compileJava.dependsOn expandSources
     compileJava.source = expandSources.destinationDir
+}
+
+if (!hasProperty("allTests")) {
+    println "Excluding tests"
+    project.test {
+        exclude 'me/tecc/lahc/tests/BenchmarkTest*'
+    }
 }
 
 publishing {
