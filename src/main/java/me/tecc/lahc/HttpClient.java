@@ -6,18 +6,19 @@
 package me.tecc.lahc;
 
 import me.tecc.lahc.http.HttpRequest;
-import me.tecc.lahc.http.HttpResponse;
 import me.tecc.lahc.http.Parsing;
 import me.tecc.lahc.io.Connection;
 import me.tecc.lahc.io.Connectors;
 import me.tecc.lahc.io.connectors.Connector;
+import me.tecc.lahc.util.HttpFuture;
 import me.tecc.lahc.util.MimeType;
 
-import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.util.concurrent.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 public class HttpClient {
     private Executor executor;
@@ -37,7 +38,7 @@ public class HttpClient {
         }
     }
 
-    public Future<HttpResponse> execute(HttpRequest source) {
+    public HttpFuture execute(HttpRequest source) {
         final HttpRequest request = new HttpRequest(source); // make a copy of the request as to make sure that nothing bad happens
         MimeType accepts = request.accepts();
         if (accepts == null) {
@@ -49,7 +50,7 @@ public class HttpClient {
             // if it doesn't have a charset specified, use the default charset
             request.accept(accepts.withCharset(this.options.getDefaultCharset()));
         }
-        return CompletableFuture.supplyAsync(() -> {
+        return new HttpFuture(CompletableFuture.supplyAsync(() -> {
             // make sure it's a valid request
             if (!request.validate()) throw new IllegalArgumentException("Request is invalid!");
 
@@ -73,7 +74,7 @@ public class HttpClient {
             } catch (Throwable e) {
                 throw new CompletionException(e);
             }
-        }, executor);
+        }, executor));
     }
 
     private Connector connector;

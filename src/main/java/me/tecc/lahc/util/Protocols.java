@@ -5,8 +5,6 @@
 
 package me.tecc.lahc.util;
 
-import jdk.internal.access.JavaIOFileDescriptorAccess;
-
 import java.util.HashMap;
 import java.util.Map;
 
