@@ -48,19 +48,21 @@ public class DefaultConnector implements Connector {
 
         @Override
         public void open() throws IOException {
-            if (this.socket != null) {
-                if (!this.socket.isClosed() && this.socket.isConnected() && this.socket.isBound()) return;
-            }
-            if (this.socket != null) {
-                this.socket.close();
-                this.socket = null;
-                this.output = null;
-                this.input = null;
-            }
-            if (this.target.isSecure()) {
-                this.socket = SSLSocketFactory.getDefault().createSocket(target.getAddress(), target.getPort());
-            } else {
-                this.socket = new Socket(target.getAddress(), target.getPort());
+            synchronized (lock()) {
+                if (this.socket != null) {
+                    if (!this.socket.isClosed() && this.socket.isConnected() && this.socket.isBound()) return;
+                }
+                if (this.socket != null) {
+                    this.socket.close();
+                    this.socket = null;
+                    this.output = null;
+                    this.input = null;
+                }
+                if (this.target.isSecure()) {
+                    this.socket = SSLSocketFactory.getDefault().createSocket(target.getAddress(), target.getPort());
+                } else {
+                    this.socket = new Socket(target.getAddress(), target.getPort());
+                }
             }
         }
 
@@ -78,9 +80,17 @@ public class DefaultConnector implements Connector {
 
         @Override
         public void close() throws IOException {
-            if (input != null) input.close();
-            if (output != null) output.close();
-            socket.close();
+            synchronized (lock()) {
+                if (input != null) {
+                    input.close();
+                    input = null;
+                }
+                if (output != null) {
+                    output.close();
+                    output = null;
+                }
+                socket.close();
+            }
         }
 
         @Override
