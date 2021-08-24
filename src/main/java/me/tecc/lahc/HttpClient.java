@@ -6,11 +6,12 @@
 package me.tecc.lahc;
 
 import me.tecc.lahc.http.HttpRequest;
+import me.tecc.lahc.http.HttpResponse;
 import me.tecc.lahc.http.Parsing;
 import me.tecc.lahc.io.Connection;
 import me.tecc.lahc.io.Connectors;
 import me.tecc.lahc.io.connectors.Connector;
-import me.tecc.lahc.util.HttpFuture;
+import me.tecc.lahc.util.Promise;
 import me.tecc.lahc.util.MimeType;
 
 import java.io.OutputStream;
@@ -38,7 +39,7 @@ public class HttpClient {
         }
     }
 
-    public HttpFuture execute(HttpRequest source) {
+    public Promise<HttpResponse> execute(HttpRequest source) {
         final HttpRequest request = new HttpRequest(source); // make a copy of the request as to make sure that nothing bad happens
         MimeType accepts = request.accepts();
         if (accepts == null) {
@@ -50,7 +51,7 @@ public class HttpClient {
             // if it doesn't have a charset specified, use the default charset
             request.accept(accepts.withCharset(this.options.getDefaultCharset()));
         }
-        return new HttpFuture(CompletableFuture.supplyAsync(() -> {
+        return new Promise<>(CompletableFuture.supplyAsync(() -> {
             // make sure it's a valid request
             if (!request.validate()) throw new IllegalArgumentException("Request is invalid!");
 

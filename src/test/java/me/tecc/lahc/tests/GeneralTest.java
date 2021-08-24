@@ -8,7 +8,8 @@ package me.tecc.lahc.tests;
 import lombok.extern.slf4j.Slf4j;
 import me.tecc.lahc.HttpClient;
 import me.tecc.lahc.http.HttpRequest;
-import me.tecc.lahc.util.HttpFuture;
+import me.tecc.lahc.http.HttpResponse;
+import me.tecc.lahc.util.Promise;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -21,13 +22,13 @@ public class GeneralTest {
         HttpRequest request = new HttpRequest()
                 .url("https://example.com/index.html");
 
-        HttpFuture future = client.execute(request);
+        Promise<HttpResponse> future = client.execute(request);
         Assertions.assertDoesNotThrow(() -> {
-            future.success(response -> {
+            future.then(response -> {
                 Assertions.assertTrue(response.isSuccessful(), "Response is not successful: " + response.getStatus());
-            }).failure(value -> {
+            }).exception(value -> {
                 throw new AssertionError();
-            });
+            }).run();
         });
     }
 }
