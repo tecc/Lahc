@@ -96,7 +96,6 @@ public class MimeType implements HeaderValue {
                 case TYPE: {
                     if (c == ';') {
                         propName = new StringBuilder();
-                        needsPut = true;
                         stage = ParseStage.PROPERTY_NAME;
                     } else {
                         type.append(c);
@@ -108,6 +107,7 @@ public class MimeType implements HeaderValue {
                         stage = ParseStage.PROPERTY_VALUE;
                         propNameB = propName.toString().trim();
                         propValue = new StringBuilder();
+                        needsPut = true;
                     } else {
                         propName.append(c);
                     }
@@ -120,15 +120,7 @@ public class MimeType implements HeaderValue {
                             continue loop;
                         }
                         default: {
-                            switch (propNameB) {
-                                case "charset": {
-                                    propValue.append(c);
-                                    continue loop;
-                                }
-                                default: {
-                                    continue loop;
-                                }
-                            }
+                            propValue.append(c);
                         }
                     }
                 }
@@ -139,7 +131,8 @@ public class MimeType implements HeaderValue {
             props.put(propNameB, propValue.toString());
         }
 
-        return new MimeType(type.toString(), propValue == null ? null : propValue.toString());
+        String charset = props.get("charset");
+        return new MimeType(type.toString(), charset);
     }
 
     private enum ParseStage {
