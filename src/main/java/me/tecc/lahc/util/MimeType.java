@@ -10,7 +10,9 @@ import org.jetbrains.annotations.Contract;
 import java.nio.charset.Charset;
 import java.nio.charset.IllegalCharsetNameException;
 import java.nio.charset.UnsupportedCharsetException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class MimeType implements HeaderValue {
     private String type;
@@ -29,41 +31,14 @@ public class MimeType implements HeaderValue {
         else this.charset = null;
     }
 
-    @Contract("null -> null; _ -> _")
-    public static MimeType parse(String str) {
-        if (str == null) return null;
-        StringBuilder type = new StringBuilder();
-        StringBuilder charset = null;
-        StringBuilder propName = null; // just for safety
-        boolean semi = false;
-        boolean eq = false;
-        for (char c : str.toCharArray()) {
-            if (eq) charset.append(c);
-            else if (semi) {
-                if (c == '=') {
-                    if (!propName.toString().equals("charset")) throw new IllegalArgumentException("Invalid property name");
-                    charset = new StringBuilder();
-                    eq = true;
-                } else propName.append(c);
-            }
-            else {
-                if (c == ';') {
-                    semi = true;
-                    propName = new StringBuilder();
-                } else {
-                    type.append(c);
-                }
-            }
-        }
-        return new MimeType(type.toString(), charset == null ? null : charset.toString());
-    }
-
     public String getType() {
         return this.type;
     }
+
     public String getCharset() {
         return charset;
     }
+
     public Charset getNioCharset() {
         String name = getCharset();
         if (name == null) return null;
@@ -77,6 +52,7 @@ public class MimeType implements HeaderValue {
     public MimeType withCharset(String charset) {
         return new MimeType(getType(), charset);
     }
+
     public MimeType withCharset(Charset charset) {
         return withCharset(charset.name());
     }
@@ -94,8 +70,87 @@ public class MimeType implements HeaderValue {
         return toString();
     }
 
+    @Contract("null -> null; _ -> _")
+    public static MimeType parse(String str) {
+        if (str == null) return null;
+        StringBuilder type = new StringBuilder();
+        StringBuilder propName = null, propValue = null;
+        String propNameB = null;
+        Map<String, String> props = new HashMap<>();
+        boolean cr = false, needsPut = false;
+        ParseStage stage = ParseStage.TYPE;
+        loop:
+        for (char c : str.toCharArray()) {
+            switch (c) {
+                case '\r':
+                    cr = true;
+                    continue loop;
+                case '\n':
+                    if (cr) {
+                        break loop;
+                    }
+                default:
+                    break;
+            }
+            switch (stage) {
+                case TYPE: {
+                    if (c == ';') {
+                        propName = new StringBuilder();
+                        needsPut = true;
+                        stage = ParseStage.PROPERTY_NAME;
+                    } else {
+                        type.append(c);
+                    }
+                    continue loop;
+                }
+                case PROPERTY_NAME: {
+                    if (c == '=') {
+                        stage = ParseStage.PROPERTY_VALUE;
+                        propNameB = propName.toString().trim();
+                        propValue = new StringBuilder();
+                    } else {
+                        propName.append(c);
+                    }
+                    continue loop;
+                }
+                case PROPERTY_VALUE: {
+                    switch (c) {
+                        case ';': {
+                            stage = ParseStage.PROPERTY_NAME;
+                            continue loop;
+                        }
+                        default: {
+                            switch (propNameB) {
+                                case "charset": {
+                                    propValue.append(c);
+                                    continue loop;
+                                }
+                                default: {
+                                    continue loop;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (needsPut) {
+            props.put(propNameB, propValue.toString());
+        }
+
+        return new MimeType(type.toString(), propValue == null ? null : propValue.toString());
+    }
+
+    private enum ParseStage {
+        TYPE,
+        PROPERTY_NAME,
+        PROPERTY_VALUE
+    }
+
     /* Put predefined mime types here */
     public static final MimeType ANY = new MimeType("*/*");
+
     public static final class Application {
         public static final MimeType JSON = new MimeType("application/json");
     }
