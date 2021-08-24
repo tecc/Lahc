@@ -170,7 +170,7 @@ public class HttpRequest {
     public HttpRequest makeSecure() {
         Protocols.Protocol protocol = Protocols.get(url);
         if (!protocol.canMakeSecure()) return this; // fail silently
-        // protocol = protocol.makeSecure();
+        protocol = protocol.makeSecure();
         try {
             return this.url(new URL(protocol.getProtocol(), url.getHost(), url.getPort(), url.getFile()));
         } catch (MalformedURLException e) {
