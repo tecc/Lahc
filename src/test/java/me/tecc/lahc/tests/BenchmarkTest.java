@@ -6,7 +6,11 @@ import me.tecc.lahc.http.HttpRequest;
 import org.apache.hc.client5.http.async.methods.*;
 import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
 import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
+import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManager;
+import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
 import org.apache.hc.core5.concurrent.FutureCallback;
+import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
 import org.apache.hc.core5.reactor.IOReactorConfig;
 import org.apache.hc.core5.util.Timeout;
 import org.asynchttpclient.*;
@@ -26,7 +30,8 @@ public class BenchmarkTest {
     @BeforeAll
     static void setup() throws IOException {
         System.out.println("Iterations: " + TIMES);
-        url = new URL("http://example.com");
+        System.out.println("Times are shown in milliseconds");
+        url = new URL("https://example.com/index.html");
     }
 
     @Test
@@ -46,20 +51,27 @@ public class BenchmarkTest {
 
     @Test
     public void benchmarkApache5() throws URISyntaxException {
+        final TlsStrategy tlsStrategy = ClientTlsStrategyBuilder.create()
+                .useSystemProperties()
+                .build();
         final IOReactorConfig ioReactorConfig = IOReactorConfig.custom()
                 .setSoTimeout(Timeout.ofSeconds(5))
                 .build();
+        final PoolingAsyncClientConnectionManager cm = PoolingAsyncClientConnectionManagerBuilder.create()
+                .setTlsStrategy(tlsStrategy)
+                .build();
         final CloseableHttpAsyncClient client = HttpAsyncClients.custom()
                 .setIOReactorConfig(ioReactorConfig)
+                .setConnectionManager(cm)
                 .build();
         client.start();
-
         final SimpleHttpRequest request = SimpleRequestBuilder.get()
                 .setUri(url.toURI())
                 .build();
 
         benchmark("Apache HTTPComponents Client 5", () -> {
             try {
+                final Throwable[] t = new Throwable[]{null};
                 client.execute(
                         SimpleRequestProducer.create(request), SimpleResponseConsumer.create(), new FutureCallback<SimpleHttpResponse>() {
                             @Override
@@ -68,7 +80,7 @@ public class BenchmarkTest {
 
                             @Override
                             public void failed(Exception ex) {
-
+                                t[0] = ex;
                             }
 
                             @Override
@@ -77,6 +89,7 @@ public class BenchmarkTest {
                             }
                         })
                         .get();
+                if (t[0] != null) throw t[0];
             } catch (Throwable e) {
                 throw new RuntimeException(e);
             }
@@ -100,12 +113,12 @@ public class BenchmarkTest {
     }
 
     private static void benchmark(String name, Runnable runnable) {
-        long total = 0, worst = 0, best = Long.MAX_VALUE;
+        long totalNano = 0, worstNano = 0, bestNano = Long.MAX_VALUE;
         long[] results = new long[TIMES];
         Throwable exSample = null;
         int failed = 0;
         for (int i = 0; i < TIMES; i++) {
-            long start = System.currentTimeMillis();
+            long start = System.nanoTime();
             try {
                 runnable.run();
             } catch (Throwable t) {
@@ -113,11 +126,11 @@ public class BenchmarkTest {
                 failed++;
                 continue;
             }
-            long end = System.currentTimeMillis();
+            long end = System.nanoTime();
             long result = end - start;
-            total += result;
-            if (result > worst) worst = result;
-            if (result < best) best = result;
+            totalNano += result;
+            if (result > worstNano) worstNano = result;
+            if (result < bestNano) bestNano = result;
             results[i] = result;
         }
         if (failed >= TIMES) {
@@ -128,12 +141,15 @@ public class BenchmarkTest {
             }
             System.err.println("Benchmark " + name + " failed completely" + writer);
         } else {
-            double average = total / (double) TIMES;
+            double
+                    average = totalNano / (double) TIMES / 1000000D,
+                    worst = worstNano / 1000000D,
+                    best = bestNano / 1000000D;
             put(name, average, worst, best);
         }
     }
 
-    private static void put(String benchmark, double average, long worst, long best) {
+    private static void put(String benchmark, double average, double worst, double best) {
         System.out.println("Benchmark " + benchmark + ": AVG " + average + ", WORST " + worst + ", BEST " + best);
     }
 }
