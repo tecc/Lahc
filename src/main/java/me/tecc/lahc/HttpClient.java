@@ -60,9 +60,14 @@ public class HttpClient {
                     try {
                         // make sure connection is open
                         connection.open();
+
+                        // get output stream and write request bytes
                         OutputStream output = connection.output();
+                        // TODO: Add checks to make sure output is valid
                         output.write(request.toHTTPRequest());
+
                         // return result
+                        // TODO: Add checks to make sure input is valid
                         return Parsing.response(request, connection.input());
                     } catch (Throwable t) {
                         throw new CompletionException(t);

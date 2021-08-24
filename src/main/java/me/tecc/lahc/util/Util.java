@@ -5,8 +5,13 @@
 
 package me.tecc.lahc.util;
 
+import org.jetbrains.annotations.Contract;
+
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.function.IntPredicate;
 import java.util.function.Predicate;
 
 public class Util {
@@ -33,6 +38,14 @@ public class Util {
         return builder.toString();
     }
 
+    @SuppressWarnings("ConstantConditions")
+    @Contract("null -> null; !null -> !null")
+    public static Integer[] objectify(int[] a) {
+        if (a == null) return null;
+        return (Integer[]) ((Object) a);
+    }
+
+    @SafeVarargs
     public static <T> T firstValid(Predicate<T> invalid, T... ts) {
         T last = null;
         for (T t : ts) {
@@ -41,5 +54,13 @@ public class Util {
             return last;
         }
         return last;
+    }
+
+    public static URL url(String spec) {
+        try {
+            return new URL(spec);
+        } catch (MalformedURLException e) {
+            return null;
+        }
     }
 }

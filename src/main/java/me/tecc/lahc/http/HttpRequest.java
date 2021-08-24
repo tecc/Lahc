@@ -29,12 +29,12 @@ public class HttpRequest {
         header("Accept", "*/*;");
     }
 
-    public HttpRequest(HttpRequest source) {
-        this.version = source.getHttpVersion();
-        this.method = source.getMethod();
-        this.url = source.getURL();
-        this.headers = new HashMap<>(source.getHeaders());
-        byte[] body = source.getBody();
+    public HttpRequest(HttpRequest base) {
+        this.version = base.getHttpVersion();
+        this.method = base.getMethod();
+        this.url = base.getURL();
+        this.headers = new HashMap<>(base.getHeaders());
+        byte[] body = base.getBody();
         if (body != null) this.body = Arrays.copyOf(body, body.length);
         else this.body = null;
     }
@@ -160,10 +160,21 @@ public class HttpRequest {
     }
 
     public ConnectionTarget getTarget() {
+        return new ConnectionTarget(url);
+    }
+
+    /**
+     * Attempts to make the request secure automatically, e.g. by switching "http" to "https".
+     */
+    @Contract("-> this")
+    public HttpRequest makeSecure() {
+        Protocols.Protocol protocol = Protocols.get(url);
+        if (!protocol.canMakeSecure()) return this; // fail silently
+        // protocol = protocol.makeSecure();
         try {
-            return new ConnectionTarget(url);
-        } catch (UnknownHostException e) {
-            return null;
+            return this.url(new URL(protocol.getProtocol(), url.getHost(), url.getPort(), url.getFile()));
+        } catch (MalformedURLException e) {
+            throw new RuntimeException("Error trying to make request URL use secure protocol", e);
         }
     }
 }

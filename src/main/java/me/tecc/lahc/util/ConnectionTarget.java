@@ -15,8 +15,18 @@ public class ConnectionTarget {
     private final int port;
     private boolean secure;
 
-    public ConnectionTarget(URL url) throws UnknownHostException {
-        this(InetAddress.getByName(url.getHost()), Util.firstValid((i) -> i == -1, url.getPort(), url.getDefaultPort(), Protocols.port(url.getProtocol())), Protocols.secure(url.getProtocol()));
+    public ConnectionTarget(URL url) {
+        if (url == null) throw new IllegalArgumentException("'url' parameter may not be null!");
+        try {
+            this.address = InetAddress.getByName(url.getHost());
+        } catch (UnknownHostException e) {
+            throw new RuntimeException(e);
+        }
+        Protocols.Protocol protocol = Protocols.get(url);
+        this.port = Util.firstValid((i) -> i == -1,
+                        url.getPort(),
+                        url.getDefaultPort());
+        this.secure = protocol.isSecure();
     }
     public ConnectionTarget(InetAddress address, int port, boolean secure) {
         this.address = address;
@@ -48,5 +58,10 @@ public class ConnectionTarget {
         if (tgt.isSecure() != this.isSecure()) return false;
         if (!tgt.getAddress().equals(this.getAddress())) return false;
         return true;
+    }
+
+    @Override
+    public String toString() {
+        return "ConnTgt{" + this.getAddress().toString() + " port " + this.getPort() + "}";
     }
 }
