@@ -48,7 +48,15 @@ public class DefaultConnector implements Connector {
 
         @Override
         public void open() throws IOException {
-            if (this.socket != null) return;
+            if (this.socket != null) {
+                if (!this.socket.isClosed() && this.socket.isConnected() && this.socket.isBound()) return;
+            }
+            if (this.socket != null) {
+                this.socket.close();
+                this.socket = null;
+                this.output = null;
+                this.input = null;
+            }
             if (this.target.isSecure()) {
                 this.socket = SSLSocketFactory.getDefault().createSocket(target.getAddress(), target.getPort());
             } else {
