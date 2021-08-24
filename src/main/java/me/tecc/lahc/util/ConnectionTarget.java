@@ -8,6 +8,7 @@ package me.tecc.lahc.util;
 import java.net.InetAddress;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.util.Objects;
 
 public class ConnectionTarget {
     private final InetAddress address;
@@ -33,5 +34,19 @@ public class ConnectionTarget {
 
     public boolean isSecure() {
         return secure;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getAddress(), getPort());
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof ConnectionTarget)) return false;
+        ConnectionTarget tgt = (ConnectionTarget) obj;
+        if (tgt.isSecure() != this.isSecure()) return false;
+        if (!tgt.getAddress().equals(this.getAddress())) return false;
+        return true;
     }
 }
