@@ -71,4 +71,6 @@ public abstract class HttpResponse {
     public boolean isSuccessful() {
         return this.getStatus().isSuccessful();
     }
+
+    public abstract byte[] getRawResponse();
 }

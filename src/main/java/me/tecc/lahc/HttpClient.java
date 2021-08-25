@@ -12,6 +12,7 @@ import me.tecc.lahc.io.Connection;
 import me.tecc.lahc.io.Connectors;
 import me.tecc.lahc.io.connectors.Connector;
 import me.tecc.lahc.util.Promise;
+import me.tecc.lahc.io.Connector;
 import me.tecc.lahc.util.MimeType;
 
 import java.io.OutputStream;
@@ -62,9 +63,14 @@ public class HttpClient {
                     try {
                         // make sure connection is open
                         connection.open();
+
+                        // get output stream and write request bytes
                         OutputStream output = connection.output();
+                        // TODO: Add checks to make sure output is valid
                         output.write(request.toHTTPRequest());
+
                         // return result
+                        // TODO: Add checks to make sure input is valid
                         return Parsing.response(request, connection.input());
                     } catch (Throwable t) {
                         throw new CompletionException(t);
@@ -92,7 +98,7 @@ public class HttpClient {
     public static final class Options {
         private boolean shouldPoolThreads = true;
         private int threads = 2;
-        private String defaultCharset;
+        private String defaultCharset = StandardCharsets.UTF_8.name();
         private int connectionTimeout = -1;
         private int readTimeout = -1;
         private int timeout = 10000;

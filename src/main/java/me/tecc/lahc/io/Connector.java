@@ -3,7 +3,7 @@
  * Lahc is licensed under the MIT licence.
  */
 
-package me.tecc.lahc.io.connectors;
+package me.tecc.lahc.io;
 
 import me.tecc.lahc.io.Connection;
 import me.tecc.lahc.util.ConnectionTarget;
