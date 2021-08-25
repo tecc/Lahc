@@ -47,11 +47,38 @@ if (hasProperty("release")) {
     compileJava.source = expandSources.destinationDir
 }
 
+String prop(String name) {
+    return hasProperty(name) ? property(name) : null
+}
+
+def exclTest(List<String> noExclude, String pattern) {
+    boolean exclude = true
+    noExclude.each { String noExclPattern ->
+        String[] neParts = noExclPattern.split("\\.")
+        String[] pParts = pattern.split("\\.")
+        if (neParts.length <= pParts.length) {
+            for (int i = 0; i < neParts.length; i++) {
+                String nePart = neParts[i]
+                String pPart = pParts[i]
+                if (nePart == pPart) exclude = false
+                exclude = true
+                break
+            }
+        }
+    }
+
+
+    if (exclude) {
+        String excludePattern = pattern.replace('.', '/') + '*'
+        println "Excluding $pattern ($excludePattern)"
+        project.test.exclude(excludePattern)
+    }
+}
+testClasses.outputs.upToDateWhen { false }
 if (!hasProperty("allTests")) {
     println "Excluding tests"
-    project.test {
-        exclude 'me/tecc/lahc/tests/BenchmarkTest*'
-    }
+    List<String> tests = new ArrayList<>(project.test.includes) // TODO: Get the includes properly (--tests argument)
+    exclTest(tests, "me.tecc.lahc.tests.BenchmarkTest")
 }
 
 publishing {
