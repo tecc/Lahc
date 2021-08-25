@@ -41,7 +41,7 @@ HttpRequest request = new HttpRequest()
         .url("https://example.com/index.html");
 
 // Execute the request using the client
-Future<HttpResponse> responseFuture = client.execute(request);
+Promise<HttpResponse> responseFuture = client.execute(request);
 // Note that getting the result can throw exceptions - handle them however you want!
 try {
     HttpResponse response = responseFuture.get();
