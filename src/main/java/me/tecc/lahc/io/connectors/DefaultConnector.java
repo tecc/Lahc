@@ -6,6 +6,7 @@
 package me.tecc.lahc.io.connectors;
 
 import me.tecc.lahc.io.Connection;
+import me.tecc.lahc.io.Connector;
 import me.tecc.lahc.util.ConnectionTarget;
 import org.jetbrains.annotations.NotNull;
 

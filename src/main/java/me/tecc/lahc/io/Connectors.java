@@ -5,7 +5,6 @@
 
 package me.tecc.lahc.io;
 
-import me.tecc.lahc.io.connectors.Connector;
 import me.tecc.lahc.io.connectors.DefaultConnector;
 
 import java.util.ArrayList;
