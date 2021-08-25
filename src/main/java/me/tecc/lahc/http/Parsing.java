@@ -166,15 +166,17 @@ public class Parsing {
             int remaining = contentLength & 0x7f; // remaining will always be last 6 bits
             for (int i = 0; i < jumps; i++) {
                 char[] chars = new char[128];
-                if (reader.read(chars) < 128) throw new IOException("Length prediction was incorrect!");
+                if (reader.read(chars) < 128) throw new IOException("Length prediction was incorrect! (buffered)");
                 bodyOutput.write(toBytes(chars, charset));
                 raw.append(chars);
             }
             // read the remaining
-            char[] chars = new char[remaining];
-            if (reader.read(chars) < remaining) throw new IOException("Length prediction was incorrect!");
-            bodyOutput.write(toBytes(chars, charset));
-            raw.append(chars);
+            if (remaining != 0) {
+                char[] chars = new char[remaining];
+                if (reader.read(chars) < remaining) throw new IOException("Length prediction was incorrect! (remaining)");
+                bodyOutput.write(toBytes(chars, charset));
+                raw.append(chars);
+            }
         }
 
         final Status status = new Status(statusCode, statusMessage.toString(), null);
