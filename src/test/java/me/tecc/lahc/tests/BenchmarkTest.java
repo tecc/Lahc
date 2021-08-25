@@ -141,8 +141,10 @@ public class BenchmarkTest {
             }
             System.err.println("Benchmark " + name + " failed completely" + writer);
         } else {
+            double times = TIMES;
+            double failedPercentage = failed / times;
             double
-                    average = totalNano / (double) TIMES / 1000000D,
+                    average = totalNano / times / 1000000D,
                     worst = worstNano / 1000000D,
                     best = bestNano / 1000000D;
             put(name, average, worst, best);
