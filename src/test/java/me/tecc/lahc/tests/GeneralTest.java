@@ -8,16 +8,15 @@ package me.tecc.lahc.tests;
 import me.tecc.lahc.HttpClient;
 import me.tecc.lahc.http.HttpRequest;
 import me.tecc.lahc.http.HttpResponse;
-import org.asynchttpclient.Request;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.ThrowingSupplier;
 import org.junit.platform.commons.logging.Logger;
 import org.junit.platform.commons.logging.LoggerFactory;
 
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class GeneralTest {
     HttpClient client = new HttpClient();
@@ -27,39 +26,47 @@ public class GeneralTest {
     void google() {
         HttpRequest request = new HttpRequest()
                 .url("http://google.com");
-        dr(request);
+        dr(request, true);
     }
     @Test
     void example() {
         HttpRequest request = new HttpRequest()
                 .url("http://example.com/index.html");
-        dr(request);
+        dr(request, true);
     }
 
-    void dr(HttpRequest request) {
+    @Test
+    void twoConsecutive() {
+        HttpRequest request = new HttpRequest();
+        dr(request, false);
+        dr(request, false);
+    }
+
+    void dr(HttpRequest request, boolean makeSecure) {
         Future<HttpResponse> responseFuture = client.execute(request);
+        AtomicReference<HttpResponse> response = new AtomicReference<>();
         Assertions.assertDoesNotThrow(() -> {
-            HttpResponse response;
             try {
-                response = responseFuture.get();
+                response.set(responseFuture.get());
             } catch (CompletionException | ExecutionException e) {
                 if (e.getCause() != null) throw e.getCause();
                 else throw e;
             }
-            Assertions.assertTrue(response.isSuccessful(), "Response is not successful: " + response.getStatus());
-            logger.info(() -> "Raw response of unsecure: \n" + new String(response.getRawResponse()));
+            logger.info(() -> "Raw response of unsecure: \n" + new String(response.get().getRawResponse()));
         });
+        Assertions.assertTrue(response.get().isSuccessful(), "Response is not successful: " + response.get().getStatus());
+        if (makeSecure) return;
         Future<HttpResponse> responseFutureSecure = client.execute(request.makeSecure());
+        AtomicReference<HttpResponse> responseSecure = new AtomicReference<>();
         Assertions.assertDoesNotThrow(() -> {
-            HttpResponse response;
             try {
-                response = responseFutureSecure.get();
+                responseSecure.set(responseFutureSecure.get());
             } catch (CompletionException | ExecutionException e) {
                 if (e.getCause() != null) throw e.getCause();
                 else throw e;
             }
-            Assertions.assertTrue(response.isSuccessful(), "Response is not successful: \n" + response);
-            logger.info(response::toString);
+            logger.info(responseSecure.get()::toString);
         });
+        Assertions.assertTrue(responseSecure.get().isSuccessful(), "Secure response is not successful: \n" + responseSecure);
     }
 }
