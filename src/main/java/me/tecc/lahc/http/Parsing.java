@@ -49,6 +49,7 @@ public class Parsing {
         MimeType contentType = request.accepts();
         int contentLength = 0;
 
+        loop:
         while ((current = reader.read()) >= 0 && stage != ParseStage.BODY) {
             raw.append((char) current);
             // if it hasn't started, look for header
@@ -106,6 +107,7 @@ public class Parsing {
                     else if (cr && current == '\n') {
                         cr = false;
                         stage = ParseStage.BODY;
+                        break loop;
                     } else {
                         stage = ParseStage.HEADER_NAME;
                         headerName = new StringBuilder().append((char) current);
@@ -166,14 +168,16 @@ public class Parsing {
             int remaining = contentLength & 0x7f; // remaining will always be last 6 bits
             for (int i = 0; i < jumps; i++) {
                 char[] chars = new char[128];
-                if (reader.read(chars) < 128) throw new IOException("Length prediction was incorrect! (buffered)");
+                int read = reader.read(chars);
+                if (read < 128) throw new IOException("Length prediction was incorrect! (buffered)");
                 bodyOutput.write(toBytes(chars, charset));
                 raw.append(chars);
             }
             // read the remaining
             if (remaining != 0) {
-                char[] chars = new char[remaining];
-                if (reader.read(chars) < remaining) throw new IOException("Length prediction was incorrect! (remaining)");
+                char[] chars = new char[remaining + 1];
+                int read = reader.read(chars);
+                if (read < remaining) throw new IOException("Length prediction was incorrect! (remaining)");
                 bodyOutput.write(toBytes(chars, charset));
                 raw.append(chars);
             }
