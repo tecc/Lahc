@@ -24,12 +24,13 @@ import java.net.*;
 import java.util.concurrent.ExecutionException;
 
 public class BenchmarkTest {
-    public static int TIMES = 10;
+    public static final int TIMES = 10;
+    private static final double FAIL_THRESHOLD = .5;
     private static URL url;
 
     @BeforeAll
     static void setup() throws IOException {
-        System.out.println("Iterations: " + TIMES);
+        System.out.println("Iterations " + TIMES + " (threshold " + FAIL_THRESHOLD + ")");
         System.out.println("Times are shown in milliseconds");
         url = new URL("https://example.com/index.html");
     }
@@ -143,6 +144,9 @@ public class BenchmarkTest {
         } else {
             double times = TIMES;
             double failedPercentage = failed / times;
+            if (failedPercentage > FAIL_THRESHOLD) {
+                System.err.println("Benchmark " + name + " failed over threshold (" + failedPercentage + ") - results may be inconclusive");
+            }
             double
                     average = totalNano / times / 1000000D,
                     worst = worstNano / 1000000D,
