@@ -37,7 +37,8 @@ public class GeneralTest {
 
     @Test
     void twoConsecutive() {
-        HttpRequest request = new HttpRequest();
+        HttpRequest request = new HttpRequest()
+                .url("http://httpbin.org/get");
         dr(request, false);
         dr(request, false);
     }
@@ -52,7 +53,7 @@ public class GeneralTest {
                 if (e.getCause() != null) throw e.getCause();
                 else throw e;
             }
-            logger.info(() -> "Raw response of unsecure: \n" + new String(response.get().getRawResponse()));
+            // logger.info(() -> "Raw response of unsecure: \n" + new String(response.get().getRawResponse()));
         });
         Assertions.assertTrue(response.get().isSuccessful(), "Response is not successful: " + response.get().getStatus());
         if (makeSecure) return;
@@ -65,7 +66,7 @@ public class GeneralTest {
                 if (e.getCause() != null) throw e.getCause();
                 else throw e;
             }
-            logger.info(responseSecure.get()::toString);
+            // logger.info(responseSecure.get()::toString);
         });
         Assertions.assertTrue(responseSecure.get().isSuccessful(), "Secure response is not successful: \n" + responseSecure);
     }
