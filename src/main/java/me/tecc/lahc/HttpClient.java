@@ -15,6 +15,7 @@ import me.tecc.lahc.util.MimeType;
 
 import java.io.OutputStream;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.*;
 
 public class HttpClient {
@@ -93,7 +94,7 @@ public class HttpClient {
     public static final class Options {
         private boolean shouldPoolThreads = true;
         private int threads = 2;
-        private String defaultCharset;
+        private String defaultCharset = StandardCharsets.UTF_8.name();
         private int connectionTimeout = -1;
         private int readTimeout = -1;
         private int timeout = 10000;
