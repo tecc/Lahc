@@ -5,7 +5,6 @@
 
 package me.tecc.lahc.tests;
 
-import lombok.extern.slf4j.Slf4j;
 import me.tecc.lahc.HttpClient;
 import me.tecc.lahc.http.HttpRequest;
 import me.tecc.lahc.http.HttpResponse;
@@ -20,7 +19,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 
-@Slf4j
 public class GeneralTest {
     HttpClient client = new HttpClient();
 

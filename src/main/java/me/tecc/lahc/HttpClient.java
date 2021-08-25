@@ -10,13 +10,13 @@ import me.tecc.lahc.http.HttpResponse;
 import me.tecc.lahc.http.Parsing;
 import me.tecc.lahc.io.Connection;
 import me.tecc.lahc.io.Connectors;
-import me.tecc.lahc.io.connectors.Connector;
 import me.tecc.lahc.util.Promise;
 import me.tecc.lahc.io.Connector;
 import me.tecc.lahc.util.MimeType;
 
 import java.io.OutputStream;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
