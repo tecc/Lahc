@@ -5,9 +5,11 @@
 
 package me.tecc.lahc.tests;
 
+import lombok.extern.slf4j.Slf4j;
 import me.tecc.lahc.HttpClient;
 import me.tecc.lahc.http.HttpRequest;
 import me.tecc.lahc.http.HttpResponse;
+import me.tecc.lahc.util.Promise;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.commons.logging.Logger;
@@ -18,9 +20,9 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 
+@Slf4j
 public class GeneralTest {
     HttpClient client = new HttpClient();
-    Logger logger = LoggerFactory.getLogger(GeneralTest.class);
 
     @Test
     void google() {
@@ -44,7 +46,7 @@ public class GeneralTest {
     }
 
     void dr(HttpRequest request, boolean makeSecure) {
-        Future<HttpResponse> responseFuture = client.execute(request);
+        Promise<HttpResponse> responseFuture = client.execute(request);
         AtomicReference<HttpResponse> response = new AtomicReference<>();
         Assertions.assertDoesNotThrow(() -> {
             try {
@@ -53,11 +55,11 @@ public class GeneralTest {
                 if (e.getCause() != null) throw e.getCause();
                 else throw e;
             }
-            // logger.info(() -> "Raw response of unsecure: \n" + new String(response.get().getRawResponse()));
+            // log.info(() -> "Raw response of unsecure: \n" + new String(response.get().getRawResponse()));
         });
         Assertions.assertTrue(response.get().isSuccessful(), "Response is not successful: " + response.get().getStatus());
         if (makeSecure) return;
-        Future<HttpResponse> responseFutureSecure = client.execute(request.makeSecure());
+        Promise<HttpResponse> responseFutureSecure = client.execute(request.makeSecure());
         AtomicReference<HttpResponse> responseSecure = new AtomicReference<>();
         Assertions.assertDoesNotThrow(() -> {
             try {
@@ -66,7 +68,7 @@ public class GeneralTest {
                 if (e.getCause() != null) throw e.getCause();
                 else throw e;
             }
-            // logger.info(responseSecure.get()::toString);
+            // log.info(responseSecure.get()::toString);
         });
         Assertions.assertTrue(responseSecure.get().isSuccessful(), "Secure response is not successful: \n" + responseSecure);
     }
