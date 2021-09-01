@@ -22,14 +22,25 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class Parsing {
+    /**
+     * Attempts to parse an HTTP request.
+     * It will wait until it detects the start of an HTTP response ({@code HTTP/}) until it starts parsing the response.
+     * This is a shorthand for {@code response(request, new InputStreamReader(stream))}. 
+     *
+     * @param request The original request that was made to get the response.
+     * @param stream The input stream to read from.
+     * @see Parsing#response(HttpRequest, Reader)
+     */
     public static HttpResponse response(HttpRequest request, InputStream stream) throws IOException {
         return response(request, new InputStreamReader(stream));
     }
     
     /**
      * Attempts to parse an HTTP request. 
-     * It will wait until it detects the start of a HTTP response ({@code HTTP/}) until it starts parsing the response. 
+     * It will wait until it detects the start of an HTTP response ({@code HTTP/}) until it starts parsing the response. 
      * 
+     * @param request The original request that was made to get the response.
+     * @param reader The reader to read every character from.
      */
     public static HttpResponse response(HttpRequest request, Reader reader) throws IOException {
         // keeps track of whether the http part of the response has been parsed
