@@ -11,6 +11,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 
 /**
  * This class represents some kind of 'Future' with some JavaScript like Promise methods.
@@ -70,9 +71,6 @@ public class Promise<T> implements Future<T> {
      * To use this not every behaviour needs to be initialised. Ones that are not will be skipped.
      */
     public void run() {
-        if (isDone()) {
-            throw new IllegalStateException("Already done");
-        }
         try {
             T result = get();
             if (responseConsumer != null) responseConsumer.accept(result);
@@ -80,7 +78,7 @@ public class Promise<T> implements Future<T> {
             try {
                 if (exceptionConsumer != null) exceptionConsumer.accept(e);
             } catch (Exception ex) {
-                throw new SecurityException(ex.getMessage(), e);
+                throw new RuntimeException(ex.getMessage(), e);
             }
         } finally {
             if (concludeRunnable != null) concludeRunnable.run();
@@ -120,15 +118,58 @@ public class Promise<T> implements Future<T> {
         return future.isDone();
     }
 
+    private T resultSuccess;
+    private InterruptedException resultInterruptedEx;
+    private ExecutionException resultExecutionEx;
+    private TimeoutException resultTimeoutEx;
+    private RuntimeException resultOtherEx;
+    private int resultValue = 0;
+
+
+    private T _get(PromiseFunction<T> fn) throws InterruptedException, ExecutionException, TimeoutException {
+        if (this.resultValue == 0) {
+            try {
+                this.resultSuccess = fn.get();
+                resultValue = 1;
+            } catch (InterruptedException e) {
+                this.resultInterruptedEx = e;
+                resultValue = 2;
+            } catch (ExecutionException e) {
+                this.resultExecutionEx = e;
+                resultValue = 3;
+            } catch (TimeoutException e) {
+                this.resultTimeoutEx = e;
+                resultValue = 4;
+            } catch (RuntimeException e) {
+                this.resultOtherEx = e;
+                resultValue = 5;
+            }
+        }
+        switch (this.resultValue) {
+            case 1:
+                return this.resultSuccess;
+            case 2:
+                throw this.resultInterruptedEx;
+            case 3:
+                throw this.resultExecutionEx;
+            case 4:
+                throw this.resultTimeoutEx;
+            case 5:
+                throw this.resultOtherEx;
+            default:
+                throw new IllegalStateException("Result value has invalid value: " + this.resultValue);
+        }
+    }
     /**
      * {@inheritDoc}
      */
     @Override
     public T get() throws InterruptedException, ExecutionException {
-        if (isDone()) {
-            throw new IllegalStateException("Already done");
+        try {
+            return _get(this.future::get);
+        } catch (TimeoutException e) {
+            throw new RuntimeException(e);
         }
-        return future.get();
     }
 
     /**
@@ -136,9 +177,11 @@ public class Promise<T> implements Future<T> {
      */
     @Override
     public T get(long timeout, @NotNull TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-        if (isDone()) {
-            throw new IllegalStateException("Already done");
-        }
-        return future.get(timeout, unit);
+        return _get(() -> this.future.get(timeout, unit));
+    }
+
+    @FunctionalInterface
+    private interface PromiseFunction<T> {
+        T get() throws InterruptedException, ExecutionException, TimeoutException;
     }
 }
