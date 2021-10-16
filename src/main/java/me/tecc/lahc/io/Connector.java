@@ -16,5 +16,6 @@ import java.net.InetAddress;
  */
 public interface Connector {
     Connection connect(ConnectionTarget target) throws IOException;
+    void setConnectionTimeout(int timeout);
     void destroy();
 }

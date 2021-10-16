@@ -57,6 +57,12 @@ public abstract class HttpResponse {
         return getHeader(Headers.CONTENT_TYPE, MimeType::parse);
     }
 
+    public Headers.Connection getConnectionHeader() {
+        String value = getHeader(Headers.CONNECTION);
+        if (value == null) return null;
+        return Headers.Connection.getByHeaderValue(value);
+    }
+
     public String getHeadersString() {
         return Util.headersString(this.getHeaders());
     }

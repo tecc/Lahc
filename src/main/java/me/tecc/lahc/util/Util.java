@@ -7,6 +7,8 @@ package me.tecc.lahc.util;
 
 import org.jetbrains.annotations.Contract;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -33,7 +35,7 @@ public class Util {
         for (Map.Entry<String, String> entry : headers.entrySet()) {
             String value = entry.getValue();
             if (value == null) continue;
-            builder.append(entry.getKey()).append(": ").append(value).append("\n");
+            builder.append(entry.getKey()).append(": ").append(value).append(Util.CRLF);
         }
         return builder.toString();
     }
@@ -56,11 +58,23 @@ public class Util {
         return last;
     }
 
+    public static void close(Closeable closeable) throws IOException {
+        if (closeable != null) closeable.close();
+    }
+
     public static URL url(String spec) {
         try {
             return new URL(spec);
         } catch (MalformedURLException e) {
             return null;
         }
+    }
+
+    public static byte[] join(byte[] a, byte[] b, int maxLength) {
+        byte[] c = new byte[maxLength];
+        int w = Math.min(a.length, maxLength);
+        System.arraycopy(a, 0, c, 0, w);
+        System.arraycopy(b, 0, c, w, Math.min(w + b.length, maxLength - w));
+        return c;
     }
 }

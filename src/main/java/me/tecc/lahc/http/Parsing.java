@@ -22,6 +22,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class Parsing {
+    private static final int BUFFER = 128;
+
     public static HttpResponse response(HttpRequest request, InputStream stream) throws IOException {
         return response(request, new InputStreamReader(stream));
     }
@@ -169,7 +171,9 @@ public class Parsing {
             for (int i = 0; i < jumps; i++) {
                 char[] chars = new char[128];
                 int read = reader.read(chars);
-                if (read < 128) throw new IOException("Length prediction was incorrect! (buffered)");
+                if (read < 128) {
+                    // throw new IOException("Length prediction was incorrect! (buffered)");
+                }
                 bodyOutput.write(toBytes(chars, charset));
                 raw.append(chars);
             }

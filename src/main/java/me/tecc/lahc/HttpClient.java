@@ -5,16 +5,22 @@
 
 package me.tecc.lahc;
 
+import me.tecc.lahc.http.HttpException;
 import me.tecc.lahc.http.HttpRequest;
 import me.tecc.lahc.http.HttpResponse;
 import me.tecc.lahc.http.Parsing;
 import me.tecc.lahc.io.Connection;
 import me.tecc.lahc.io.Connectors;
+import me.tecc.lahc.util.Headers;
 import me.tecc.lahc.util.Promise;
 import me.tecc.lahc.io.Connector;
 import me.tecc.lahc.util.MimeType;
+import org.jetbrains.annotations.ApiStatus;
+import org.jetbrains.annotations.Blocking;
 
+import java.io.IOException;
 import java.io.OutputStream;
+import java.io.Reader;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
@@ -40,54 +46,64 @@ public class HttpClient {
         }
     }
 
-    public Promise<HttpResponse> execute(HttpRequest source) {
-        final HttpRequest request = new HttpRequest(source); // make a copy of the request as to make sure that nothing bad happens
-        MimeType accepts = request.accepts();
-        if (accepts == null) {
-            // if accepts is null, default to allowing *anything* - as long as it's in that type
-            accepts = MimeType.ANY.withCharset(this.options.getDefaultCharset());
-            request.accept(accepts);
+    public Promise<HttpResponse> execute(HttpRequest request) {
+        return new Promise<>(CompletableFuture.supplyAsync(() -> this.executeSync(request), executor));
+    }
+
+    @Blocking
+    @ApiStatus.Internal
+    public HttpResponse executeSync(HttpRequest source) {
+        // make a copy of the request as to make sure that nothing bad happens
+        // note that it'll also prepare some other things behind the scenes neatly
+        final HttpRequest request = source.resolve(this.options);
+
+        // make sure it's a valid request
+        if (!request.validate()) {
+            throw new IllegalArgumentException("Request is invalid!");
         }
-        if (accepts.getCharset() == null && this.options.getDefaultCharset() != null) {
-            // if it doesn't have a charset specified, use the default charset
-            request.accept(accepts.withCharset(this.options.getDefaultCharset()));
-        }
-        return new Promise<>(CompletableFuture.supplyAsync(() -> {
-            // make sure it's a valid request
-            if (!request.validate()) throw new IllegalArgumentException("Request is invalid!");
 
-            try {
-                Connection connection = getConnector().connect(request.getTarget());
+        HttpResponse response = null;
+        Connection connection = null;
+        try {
+            connection = getConnector().connect(request.getTarget());
 
-                synchronized (connection.lock()) {
-                    try {
-                        // make sure connection is open
-                        connection.open();
+            synchronized (connection.lock()) {
+                // make sure connection is open
+                connection.open();
 
-                        // get output stream and write request bytes
-                        OutputStream output = connection.output();
-                        // TODO: Add checks to make sure output is valid
-                        output.write(request.toHTTPRequest());
+                // get output stream and write request bytes
+                connection.write(request.toHTTPRequest());
 
-                        // return result
-                        // TODO: Add checks to make sure input is valid
-                        return Parsing.response(request, connection.input());
-                    } catch (Throwable t) {
-                        throw new CompletionException(t);
+                // return result
+                // TODO: Add checks to make sure input is valid
+                response = Parsing.response(request, connection.input());
+                connection.done();
+
+                if (!this.options.shouldUsePersistentConnections()) {
+                    connection.close();
+                } else if (response.getConnectionHeader() == null) {
+                    switch (response.getResponseVersion()) {
+                        case V1_0:
+                            connection.close();
+                        case V1_1:
+                        case V2_0:
+                            break;
+                        default:
                     }
+                } else if (response.getConnectionHeader() == Headers.Connection.CLOSE) {
+                    connection.close();
                 }
-            } catch (CompletionException e) {
-                throw e;
-            } catch (Throwable e) {
-                throw new CompletionException(e);
             }
-        }, executor));
+        } catch (IOException e) {
+            throw new HttpException(e);
+        }
+        return response;
     }
 
     private Connector connector;
     public Connector getConnector() {
         if (connector == null) {
-            connector = options.connector;
+            connector = options.getConnector();
             if (connector == null) {
                 connector = Connectors.createDefault();
             }
@@ -95,14 +111,18 @@ public class HttpClient {
         return connector;
     }
 
+    public Executor getExecutor() {
+        return this.executor;
+    }
+
     public static final class Options {
         private boolean shouldPoolThreads = true;
         private int threads = 2;
         private String defaultCharset = StandardCharsets.UTF_8.name();
-        private int connectionTimeout = -1;
+        private int connectionTimeout = 10000;
         private int readTimeout = -1;
-        private int timeout = 10000;
-        private Connector connector = Connectors.createDefault();
+        private Connector connector = Connectors.getDefault();
+        private boolean shouldUsePersistentConnections = true;
 
         public boolean shouldPoolThreads() {
             return shouldPoolThreads;
@@ -133,7 +153,7 @@ public class HttpClient {
         }
 
         public int getConnectionTimeout() {
-            if (connectionTimeout < 1) return getTimeout();
+            if (connectionTimeout < 0) return -1;
             return connectionTimeout;
         }
 
@@ -141,21 +161,26 @@ public class HttpClient {
             this.connectionTimeout = connectionTimeout;
         }
 
-        public int getTimeout() {
-            return timeout;
-        }
-
-        public void setTimeout(int timeout) {
-            this.timeout = timeout;
-        }
-
         public int getReadTimeout() {
-            if (readTimeout < 1) return getTimeout();
-            else return readTimeout;
+            if (readTimeout < 0) return -1;
+            return readTimeout;
         }
 
         public Connector getConnector() {
             return this.connector;
+        }
+
+        public Options setConnector(Connector connector) {
+            this.connector = connector;
+            return this;
+        }
+
+        public boolean shouldUsePersistentConnections() {
+            return this.shouldUsePersistentConnections;
+        }
+        public Options setShouldUsePersistentConnections(boolean value) {
+            this.shouldUsePersistentConnections = value;
+            return this;
         }
     }
 }

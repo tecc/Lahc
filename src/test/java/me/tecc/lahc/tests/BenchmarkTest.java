@@ -14,6 +14,7 @@ import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
 import org.apache.hc.core5.reactor.IOReactorConfig;
 import org.apache.hc.core5.util.Timeout;
 import org.asynchttpclient.*;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -153,6 +154,11 @@ public class BenchmarkTest {
                     best = bestNano / 1000000D;
             put(name, average, worst, best);
         }
+    }
+
+    @AfterAll
+    public static void sleep() throws InterruptedException {
+        Thread.sleep(10000);
     }
 
     private static void put(String benchmark, double average, double worst, double best) {

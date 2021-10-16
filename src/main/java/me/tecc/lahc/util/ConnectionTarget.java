@@ -5,15 +5,15 @@
 
 package me.tecc.lahc.util;
 
-import java.net.InetAddress;
-import java.net.URL;
-import java.net.UnknownHostException;
+import java.net.*;
 import java.util.Objects;
 
 public class ConnectionTarget {
-    private final InetAddress address;
-    private final int port;
+    private InetAddress address;
+    private int port;
+    private InetSocketAddress socketAddress;
     private boolean secure;
+    private String path;
 
     public ConnectionTarget(URL url) {
         if (url == null) throw new IllegalArgumentException("'url' parameter may not be null!");
@@ -27,15 +27,19 @@ public class ConnectionTarget {
                         url.getPort(),
                         url.getDefaultPort());
         this.secure = protocol.isSecure();
+        this.socketAddress = new InetSocketAddress(this.address, this.port);
     }
     public ConnectionTarget(InetAddress address, int port, boolean secure) {
         this.address = address;
         this.port = port;
         this.secure = secure;
     }
+    public ConnectionTarget(InetSocketAddress address) {
+        this(address.getAddress(), address.getPort(), true);
+    }
 
-    public InetAddress getAddress() {
-        return address;
+    public InetSocketAddress getAddress() {
+        return this.socketAddress;
     }
 
     public int getPort() {

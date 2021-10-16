@@ -59,7 +59,6 @@ public class MimeType implements HeaderValue {
 
     @Override
     public String toString() {
-        String type = getType();
         String charset = getCharset();
         if (charset == null || Util.isBlank(charset)) return getType();
         else return getType() + ";charset=" + charset;

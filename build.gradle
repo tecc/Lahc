@@ -18,8 +18,14 @@ repositories {
     mavenCentral()
 }
 
+configurations {
+    compileOnlyAll
+    compileClasspath.extendsFrom compileOnlyAll
+    testCompileClasspath.extendsFrom compileOnlyAll
+}
+
 dependencies {
-    compileOnly 'org.jetbrains:annotations:22.0.0'
+    compileOnlyAll 'org.jetbrains:annotations:22.0.0'
 
     testImplementation 'org.apache.httpcomponents.client5:httpclient5:5.1'
     testImplementation 'org.asynchttpclient:async-http-client:2.12.3'
@@ -37,7 +43,9 @@ task expandSources(type: Copy) {
 
     eachFile { FileCopyDetails fcd ->
         if (fcd.relativePath.lastName == "Lahc.java") {
-            expand(project: project)
+            filter { String line ->
+                line.replaceAll("(?<=\\s)VERSION\\s?=\\s\"\\w+\"", "VERSION = \"${project.version}\"")
+            }
         }
     }
     outputs.upToDateWhen { false }
