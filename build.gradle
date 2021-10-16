@@ -105,6 +105,11 @@ publishing {
             println 'Enabling release publication'
             release(MavenPublication) {
                 from components.java
+                pom {
+                    name = 'Lahc'
+                    description = 'Lightweight Async HTTP Client'
+                    url = 'https://github.com/tecc/Lahc'
+                }
             }
         }
     }
