@@ -22,34 +22,48 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class Parsing {
-    private static final int BUFFER = 128;
-
+    /**
+     * Attempts to parse an HTTP request.
+     * It will wait until it detects the start of an HTTP response ({@code HTTP/}) until it starts parsing the response.
+     * This is a shorthand for {@code response(request, new InputStreamReader(stream))}.
+     *
+     * @param request The original request that was made to get the response.
+     * @param stream The input stream to read from.
+     * @see Parsing#response(HttpRequest, Reader)
+     */
     public static HttpResponse response(HttpRequest request, InputStream stream) throws IOException {
         return response(request, new InputStreamReader(stream));
     }
 
+    /**
+     * Attempts to parse an HTTP request.
+     * It will wait until it detects the start of an HTTP response ({@code HTTP/}) until it starts parsing the response.
+     *
+     * @param request The original request that was made to get the response.
+     * @param reader The reader to read every character from.
+     */
     public static HttpResponse response(HttpRequest request, Reader reader) throws IOException {
         // keeps track of whether the http part of the response has been parsed
         ParseStage stage = ParseStage.FINDING_START;
-        int current;
-        int headerProgress = 0;
-        boolean cr = false;
-        boolean firstIter = false;
+        int current; // the current input from the reader
+        int headerProgress = 0; // how far in to the HTTP response start (`HTTP/`) it has gotten
+        boolean cr = false; // checks if the previous character was a CR (\r) character - note: i hate CRLF
+        boolean firstIter = false; // used for some behaviour inside of the code
 
         StringBuilder raw = new StringBuilder();
 
-        StringBuilder
+        StringBuilder // version keeps track of the HTTP response, statusMessage keeps track of the HTTP status message
                 version = new StringBuilder(),
                 statusMessage = new StringBuilder();
-        StringBuilder
+        StringBuilder // these 2 keep track of a headers name and value
                 headerName = new StringBuilder(),
                 headerValue = new StringBuilder();
-        Map<String, String> headers = new HashMap<>();
+        Map<String, String> headers = new HashMap<>(); // keeps track of all current headers
         int statusCode = 0;
         ByteArrayOutputStream bodyOutput = new ByteArrayOutputStream();
-        // quick access to headers when parsing
-        MimeType contentType = request.accepts();
-        int contentLength = 0;
+        // quick access to headers when parsing, re-parsing them is less efficient and annoying
+        MimeType contentType = request.accepts(); // Content-Type
+        int contentLength = 0; // Content-Length
 
         loop:
         while ((current = reader.read()) >= 0 && stage != ParseStage.BODY) {
@@ -58,75 +72,78 @@ public class Parsing {
             switch (stage) {
                 case FINDING_START: {
                     // look for header by checking how many characters into the HTTP/ it is and matching the characters
-                    // sure, slightly complicated but the simple version assumes that the start is
-                    if (headerProgress == 0 && current == 'H') {
+                    // sure, slightly complicated but the simple version assumes that the start is at the beginning
+                    if (headerProgress == 0 && current == 'H') { // 1st character has to be H
                         headerProgress++;
                         break;
                     }
-                    if ((headerProgress == 1 || headerProgress == 2) && current == 'T') {
+                    if ((headerProgress == 1 || headerProgress == 2) && current == 'T') { // 2nd and 3rd character has to be T
                         headerProgress++;
                         break;
                     }
-                    if (headerProgress == 3 && current == 'P') {
+                    if (headerProgress == 3 && current == 'P') { // 4th character has to be P
                         headerProgress++;
                         break;
                     }
-                    if (headerProgress == 4 && current == '/') {
-                        stage = ParseStage.VERSION;
+                    if (headerProgress == 4 && current == '/') { // 5th character has to be /
+                        stage = ParseStage.VERSION; // wooo! we made it to the http version
                         break;
                     }
-                    headerProgress = 0;
+                    headerProgress = 0; // ok, it didn't match - start from the beginning.
                     break;
                 }
                 case VERSION: {
-                    if (current == ' ') stage = ParseStage.STATUS_CODE;
-                    else version.append((char) current);
+                    if (current == ' ') stage = ParseStage.STATUS_CODE; // switch to parsing status code if there's a space
+                    else version.append((char) current); // just continue adding it
+                    // TODO: should probably add CRLF protection here
                     break;
                 }
                 case STATUS_CODE: {
-                    // handle CRLF
+                    // handle CRLF - if there's a CRLF it means that it's supposed to wait for the next thing to parse
                     if (current == '\r') cr = true;
                     else if (current == '\n' && cr) {
                         cr = false;
                         stage = ParseStage.WAIT_FOR_DIRECTION;
                         break;
-                    } else if (current == ' ') stage = ParseStage.STATUS_MESSAGE;
-                    else statusCode = addDigit(statusCode, current - '0');
+                    } else if (current == ' ') stage = ParseStage.STATUS_MESSAGE; // if there's a space, it means we have a status message to parse
+                    else statusCode = addDigit(statusCode, current - '0'); // does some clever math to add the digit
                     break;
                 }
                 case STATUS_MESSAGE: {
-                    // handle CRLF
+                    // handle CRLF - if there's a CRLF it means the message has ended
                     if (current == '\r') cr = true;
                     else if (current == '\n' && cr) {
                         cr = false;
                         stage = ParseStage.WAIT_FOR_DIRECTION;
                         break;
-                    } else statusMessage.append((char) current);
+                    } else statusMessage.append((char) current); // add the current character
                     break;
                 }
                 case WAIT_FOR_DIRECTION: {
                     if (current == '\r') cr = true;
                     else if (cr && current == '\n') {
-                        cr = false;
+                        cr = false; // WOO! we get to parse a body :>>
                         stage = ParseStage.BODY;
-                        break loop;
+                        break loop; // body parsing actually happens outside the while block
                     } else {
-                        stage = ParseStage.HEADER_NAME;
+                        stage = ParseStage.HEADER_NAME; // nothing recognised, assume it's a header name
                         headerName = new StringBuilder().append((char) current);
-                        headerValue = new StringBuilder();
+                        // has to add the current character manually because reasons
+                        headerValue = new StringBuilder(); // reset the value sb because otherwise values are merged, and that's a big nono
                     }
                     break;
                 }
                 case HEADER_NAME: {
-                    if (current == ':') {
+                    // TODO: crlf protection? seems reasonable to me
+                    if (current == ':') { // colons indicate that the header name is over and it should start reading the value
                         stage = ParseStage.HEADER_VALUE;
-                        firstIter = true;
+                        firstIter = true; // header value parsing needs to know when the first iteration is
                     } else headerName.append((char) current);
                     break;
                 }
                 case HEADER_VALUE: {
                     if (current == '\r') cr = true;
-                    else if (cr && current == '\n') {
+                    else if (cr && current == '\n') { // whooopdedoo, that's the end of this header
                         String name = headerName.toString();
                         String value = headerValue.toString();
                         headers.put(name, value);
@@ -148,8 +165,9 @@ public class Parsing {
                             }
                         }
                         cr = false;
+                        // wait for the next direction again
                         stage = ParseStage.WAIT_FOR_DIRECTION;
-                    } else if (firstIter) {
+                    } else if (firstIter) { // first iteration has to be skipped
                         firstIter = false;
                         continue;
                     }
@@ -166,7 +184,7 @@ public class Parsing {
         if (charset == null) charset = Charset.defaultCharset();
         if (contentLength != 0) {
             // buffered reading, reading 128 chars at a time
-            int jumps = contentLength >> 7; // division of 128
+            int jumps = contentLength >> 7; // division of 128, actual division is kinda expensive iirc
             int remaining = contentLength & 0x7f; // remaining will always be last 6 bits
             for (int i = 0; i < jumps; i++) {
                 char[] chars = new char[128];
@@ -179,7 +197,7 @@ public class Parsing {
             }
             // read the remaining
             if (remaining != 0) {
-                char[] chars = new char[remaining + 1];
+                char[] chars = new char[remaining + 1]; // gotta read the right amount of chars, though i feel like this is wrong it worked like it should
                 int read = reader.read(chars);
                 if (read < remaining) throw new IOException("Length prediction was incorrect! (remaining)");
                 bodyOutput.write(toBytes(chars, charset));
@@ -187,10 +205,12 @@ public class Parsing {
             }
         }
 
+        // make some final variables so that java won't scream "no bad code"
         final Status status = new Status(statusCode, statusMessage.toString(), null);
         final HttpVersion responseVersion = HttpVersion.byString(version.toString());
         final byte[] body = bodyOutput.toByteArray();
         final byte[] rawBytes = raw.toString().getBytes(StandardCharsets.UTF_8);
+        // finally return the parsed response
         return new HttpResponse() {
             @Override
             public HttpRequest getRequest() {
