@@ -26,7 +26,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class DefaultConnector extends CachedConnector<DefaultConnector.DefaultConnectionImpl> {
-    private Map<ConnectionTarget, DefaultConnectionImpl> connections = new HashMap<>();
     private SSLSocketFactory sslSocketFactory;
 
     {
